@@ -12,3 +12,12 @@ Hostnames are taken from the `fqdn` fact.
 	...
 	bar.example.org IN SSHFP 1 1 41DF17ECE294E2530CC754BD3E7AD61054A8D4DF
 	bar.example.org IN SSHFP 2 1 EF7891A6419E1673789C29B78D1DADE3E8634247
+
+## Bugs
+
+Yes.
+
+## Credits
+
+* Uses a bit of code swiped from [sshfp](http://www.xelerance.com/services/software/sshfp/)
+
