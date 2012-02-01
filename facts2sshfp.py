@@ -26,6 +26,7 @@ except ImportError:
 import string
 
 factsdir = '/var/lib/puppet/yaml/facts'
+# factsdir = 'yaml'
 
 
 def create_sshfp(hostname, keytype, keyblob):
