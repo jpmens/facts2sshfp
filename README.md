@@ -7,25 +7,32 @@ SSHFP records for the SSH RSA and DSA host keys contained therein.
 The following options are supported:
 
 * -d FACTSDIR
+
 > Read the specified directory for `*.yaml` instead of the default `/var/lib/puppet/yaml/facts`.
 
 * -H 
+
 > set record owner to the unqualified hostname instead of the fully qualified domain name
 
 * -D DOMAINNAME
+
 > qualify hostnames with the specified DOMAINNAME instead of using the domain name obtained
 > from the facts files
 
 * -Q
+
 > qualify the hostname with a trailing dot
 
 * -J
+
 > Produce output in JSON
 
 * -Y
+
 > Produce output in YAML
 
 * -T TEMPLATE
+
 > Print records using the content of a template file (Python Template). The fields
 > recognized by the template can be obtained from the JSON (-J) output.
 
