@@ -4,14 +4,71 @@ This program reads the fact files created on a Puppet master server (typically
 in `/var/lib/puppet/yaml/facts`) and spits out [RFC 4255](http://www.ietf.org/rfc/rfc4255.txt)
 SSHFP records for the SSH RSA and DSA host keys contained therein.
 
-Hostnames are taken from the `fqdn` fact.
+The following options are supported:
 
-	$ ./facts2sshfp
-	foo.example.net IN SSHFP 1 1 01DE5FEEA3FC4820C2AD2181CA9FE02F9B2DFE15
-	foo.example.net IN SSHFP 2 1 4BBBD2A6B26D375B377137AC877DA27AF46B4312
-	...
-	bar.example.org IN SSHFP 1 1 41DF17ECE294E2530CC754BD3E7AD61054A8D4DF
-	bar.example.org IN SSHFP 2 1 EF7891A6419E1673789C29B78D1DADE3E8634247
+* -d FACTSDIR
+> Read the specified directory for `*.yaml` instead of the default `/var/lib/puppet/yaml/facts`.
+
+* -H 
+> set record owner to the unqualified hostname instead of the fully qualified domain name
+
+* -D DOMAINNAME
+> qualify hostnames with the specified DOMAINNAME instead of using the domain name obtained
+> from the facts files
+
+* -Q
+> qualify the hostname with a trailing dot
+
+* -J
+> Produce output in JSON
+
+* -Y
+> Produce output in YAML
+
+## Examples
+
+	facts2sshfp.py 
+	ldap.example.net     IN SSHFP 1 1 01DE5FEEA3FC4820C2AD2181CA9FE02F9B2DFE15
+	ldap.example.net     IN SSHFP 2 1 4BBBD2A6B26D375B377137AC877DA27AF46B4312
+	monster.example.net  IN SSHFP 1 1 01DE5FEEA3FC4820C2AD2181CA9FE02F9B2DFE15
+	monster.example.net  IN SSHFP 2 1 4BBBD2A6B26D375B377137AC877DA27AF46B4312
+
+	facts2sshfp.py -D foo.bar
+	ldap.foo.bar         IN SSHFP 1 1 01DE5FEEA3FC4820C2AD2181CA9FE02F9B2DFE15
+	ldap.foo.bar         IN SSHFP 2 1 4BBBD2A6B26D375B377137AC877DA27AF46B4312
+	monster.foo.bar      IN SSHFP 1 1 01DE5FEEA3FC4820C2AD2181CA9FE02F9B2DFE15
+	monster.foo.bar      IN SSHFP 2 1 4BBBD2A6B26D375B377137AC877DA27AF46B4312
+
+	facts2sshfp.py -Q -D foo.bar
+	ldap.foo.bar.        IN SSHFP 1 1 01DE5FEEA3FC4820C2AD2181CA9FE02F9B2DFE15
+	ldap.foo.bar.        IN SSHFP 2 1 4BBBD2A6B26D375B377137AC877DA27AF46B4312
+	monster.foo.bar.     IN SSHFP 1 1 01DE5FEEA3FC4820C2AD2181CA9FE02F9B2DFE15
+	monster.foo.bar.     IN SSHFP 2 1 4BBBD2A6B26D375B377137AC877DA27AF46B4312
+
+	facts2sshfp.py -J
+	[
+	    {
+		"domain": "example.net", 
+		"dsa_fp": "4BBBD2A6B26D375B377137AC877DA27AF46B4312", 
+		"rsa_keytype": "1", 
+		"hostname": "ldap", 
+		"fqdn": "ldap.example.net", 
+		"owner": "ldap.example.net", 
+		"dsa_keytype": "2", 
+		"rsa_fp": "01DE5FEEA3FC4820C2AD2181CA9FE02F9B2DFE15"
+	    }, 
+	    {
+		"domain": "example.net", 
+		"dsa_fp": "4BBBD2A6B26D375B377137AC877DA27AF46B4312", 
+		"rsa_keytype": "1", 
+		"hostname": "monster", 
+		"fqdn": "monster.example.net", 
+		"owner": "monster.example.net", 
+		"dsa_keytype": "2", 
+		"rsa_fp": "01DE5FEEA3FC4820C2AD2181CA9FE02F9B2DFE15"
+	    }
+	]
+
 
 ## Bugs
 
