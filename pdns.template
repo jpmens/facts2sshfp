@@ -1,0 +1,10 @@
+INSERT INTO records (domain_id, name, type, content)
+VALUES (
+	(SELECT id FROM domains WHERE name = '$domain'),
+	'$owner', 'SSHFP', '$rsa_keytype 1 $rsa_fp'
+	);
+INSERT INTO records (domain_id, name, type, content)
+VALUES (
+	(SELECT id FROM domains WHERE name = '$domain'),
+	'$owner', 'SSHFP', '$dsa_keytype 1 $dsa_fp'
+	);

@@ -25,7 +25,13 @@ The following options are supported:
 * -Y
 > Produce output in YAML
 
+* -T TEMPLATE
+> Print records using the content of a template file (Python Template). The fields
+> recognized by the template can be obtained from the JSON (-J) output.
+
 ## Examples
+
+### Print DNS keys
 
 	facts2sshfp.py 
 	ldap.example.net     IN SSHFP 1 1 01DE5FEEA3FC4820C2AD2181CA9FE02F9B2DFE15
@@ -33,17 +39,23 @@ The following options are supported:
 	monster.example.net  IN SSHFP 1 1 01DE5FEEA3FC4820C2AD2181CA9FE02F9B2DFE15
 	monster.example.net  IN SSHFP 2 1 4BBBD2A6B26D375B377137AC877DA27AF46B4312
 
+### ... using the specified domain name
+
 	facts2sshfp.py -D foo.bar
 	ldap.foo.bar         IN SSHFP 1 1 01DE5FEEA3FC4820C2AD2181CA9FE02F9B2DFE15
 	ldap.foo.bar         IN SSHFP 2 1 4BBBD2A6B26D375B377137AC877DA27AF46B4312
 	monster.foo.bar      IN SSHFP 1 1 01DE5FEEA3FC4820C2AD2181CA9FE02F9B2DFE15
 	monster.foo.bar      IN SSHFP 2 1 4BBBD2A6B26D375B377137AC877DA27AF46B4312
 
+### Qualify owner names with a trailing dot
+
 	facts2sshfp.py -Q -D foo.bar
 	ldap.foo.bar.        IN SSHFP 1 1 01DE5FEEA3FC4820C2AD2181CA9FE02F9B2DFE15
 	ldap.foo.bar.        IN SSHFP 2 1 4BBBD2A6B26D375B377137AC877DA27AF46B4312
 	monster.foo.bar.     IN SSHFP 1 1 01DE5FEEA3FC4820C2AD2181CA9FE02F9B2DFE15
 	monster.foo.bar.     IN SSHFP 2 1 4BBBD2A6B26D375B377137AC877DA27AF46B4312
+
+### Show JSON output for further processing
 
 	facts2sshfp.py -J
 	[
@@ -68,6 +80,23 @@ The following options are supported:
 		"rsa_fp": "01DE5FEEA3FC4820C2AD2181CA9FE02F9B2DFE15"
 	    }
 	]
+
+### Print food for PowerDNS with an SQL back-end
+
+	facts2sshfp.py -T pdns.template
+	INSERT INTO records (domain_id, name, type, content)
+	VALUES (
+		(SELECT id FROM domains WHERE name = 'example.net'),
+		'ldap.example.net', 'SSHFP', '1 1 01DE5FEEA3FC4820C2AD2181CA9FE02F9B2DFE15'
+		);
+	INSERT INTO records (domain_id, name, type, content)
+	VALUES (
+		(SELECT id FROM domains WHERE name = 'example.net'),
+		'ldap.example.net', 'SSHFP', '2 1 4BBBD2A6B26D375B377137AC877DA27AF46B4312'
+		);
+	...
+
+
 
 
 ## Bugs

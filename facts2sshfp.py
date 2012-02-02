@@ -25,6 +25,7 @@ except ImportError:
     import sha
     digest = sha.new
 import string
+from string import Template
 import optparse
 
 factsdir = '/var/lib/puppet/yaml/facts'
@@ -89,6 +90,7 @@ if __name__ == '__main__':
 
     naming = 'fqdn'
     domainname = ''
+    template = ''
     keylist = []
 
     parser = optparse.OptionParser()
@@ -99,6 +101,7 @@ if __name__ == '__main__':
     parser.add_option('-Q', '--qualify', dest='qualify', default=False, help='Qualify hostname with dot', action='store_true')
     parser.add_option('-J', '--json', dest='jsonprint', default=False, help='Print JSON', action='store_true')
     parser.add_option('-Y', '--yaml', dest='yamlprint', default=False, help='Print YAML', action='store_true')
+    parser.add_option('-T', '--template', dest='templatename', help='Print using template file')
 
 
     (opts, args) = parser.parse_args()
@@ -109,6 +112,8 @@ if __name__ == '__main__':
         naming = 'hostname'
     if opts.domainname:
         domainname = opts.domainname
+    if opts.templatename:
+        template = open(opts.templatename, 'r').read()
 
     for filename in glob.glob(factsdir + "/*.yaml"):
         facts = facts_to_dict(filename)
@@ -124,7 +129,10 @@ if __name__ == '__main__':
         else:
             item['domain']          = facts['domain']
 
-        owner = item['hostname'] + '.' + item['domain']
+        if naming == 'hostname':
+            owner = item['hostname']
+        else:
+            owner = item['hostname'] + '.' + item['domain']
         if opts.qualify == True:
             owner = owner + '.'
         item['owner']           = owner
@@ -134,14 +142,18 @@ if __name__ == '__main__':
         item['dsa_fp']          = dsa['fpsha1']
         item['dsa_keytype']     = dsa['keytype']
 
-        # print yaml.dump(item, default_flow_style=False, explicit_start=True)
         keylist.append(item)
 
     if opts.jsonprint == True:
         print json.dumps(keylist, indent=4)
     elif opts.yamlprint == True:
         print yaml.dump(keylist, default_flow_style=False, explicit_start=True)
+    elif opts.templatename:
+        for item in keylist:
+            s = Template(template)
+            print s.substitute(item)
     else:
         for item in keylist:
             print "%-20s IN SSHFP %s 1 %s" % (item['owner'], item['rsa_keytype'], item['rsa_fp'])
+            print "%-20s IN SSHFP %s 1 %s" % (item['owner'], item['dsa_keytype'], item['dsa_fp'])
 
