@@ -15,6 +15,7 @@
 import glob
 import sys, re
 import yaml
+import json
 import codecs
 import base64
 try:
@@ -24,10 +25,9 @@ except ImportError:
     import sha
     digest = sha.new
 import string
+import optparse
 
 factsdir = '/var/lib/puppet/yaml/facts'
-# factsdir = 'yaml'
-
 
 def create_sshfp(hostname, keytype, keyblob):
 	"""Creates an SSH fingerprint"""
@@ -44,9 +44,14 @@ def create_sshfp(hostname, keytype, keyblob):
 	except TypeError:
 		print >> sys.stderr, "FAILED on hostname "+hostname+" with keyblob "+keyblob
 		return "ERROR"
+
 	fpsha1 = digest(rawkey).hexdigest().upper()
 
-	return hostname + " IN SSHFP " + keytype + " 1 " + fpsha1
+        # return hostname + " IN SSHFP " + keytype + " 1 " + fpsha1
+        return {
+            "keytype"   : keytype,
+            "fpsha1"    : fpsha1
+        }
 
 def facts_to_dict(filename):
     """
@@ -82,10 +87,61 @@ def facts_to_dict(filename):
 
 if __name__ == '__main__':
 
+    naming = 'fqdn'
+    domainname = ''
+    keylist = []
+
+    parser = optparse.OptionParser()
+    parser.add_option('-d', '--directory', dest='factsdir', help='Directory containing facts')
+    parser.add_option('-H', '--hostname',  dest='usehost', default=False, help='Use hostname i/o fqdn',
+        action='store_true')
+    parser.add_option('-D', '--domainname', dest='domainname', help='Append domain')
+    parser.add_option('-Q', '--qualify', dest='qualify', default=False, help='Qualify hostname with dot', action='store_true')
+    parser.add_option('-J', '--json', dest='jsonprint', default=False, help='Print JSON', action='store_true')
+    parser.add_option('-Y', '--yaml', dest='yamlprint', default=False, help='Print YAML', action='store_true')
+
+
+    (opts, args) = parser.parse_args()
+
+    if opts.factsdir:
+        factsdir =  opts.factsdir
+    if opts.usehost:
+        naming = 'hostname'
+    if opts.domainname:
+        domainname = opts.domainname
+
     for filename in glob.glob(factsdir + "/*.yaml"):
         facts = facts_to_dict(filename)
 
-        r = create_sshfp(facts['fqdn'], 'ssh-rsa', facts['sshrsakey'])
-        print(r)    
-        r = create_sshfp(facts['fqdn'], 'ssh-dss', facts['sshdsakey'])
-        print(r)    
+        item = {}
+        rsa = create_sshfp(facts[naming], 'ssh-rsa', facts['sshrsakey'])
+        dsa = create_sshfp(facts[naming], 'ssh-dss', facts['sshdsakey'])
+
+        item['hostname']        = facts['hostname']
+        item['fqdn']            = facts['fqdn']
+        if domainname != '':
+            item['domain']          = domainname
+        else:
+            item['domain']          = facts['domain']
+
+        owner = item['hostname'] + '.' + item['domain']
+        if opts.qualify == True:
+            owner = owner + '.'
+        item['owner']           = owner
+
+        item['rsa_fp']          = rsa['fpsha1']
+        item['rsa_keytype']     = rsa['keytype']
+        item['dsa_fp']          = dsa['fpsha1']
+        item['dsa_keytype']     = dsa['keytype']
+
+        # print yaml.dump(item, default_flow_style=False, explicit_start=True)
+        keylist.append(item)
+
+    if opts.jsonprint == True:
+        print json.dumps(keylist, indent=4)
+    elif opts.yamlprint == True:
+        print yaml.dump(keylist, default_flow_style=False, explicit_start=True)
+    else:
+        for item in keylist:
+            print "%-20s IN SSHFP %s 1 %s" % (item['owner'], item['rsa_keytype'], item['rsa_fp'])
+
