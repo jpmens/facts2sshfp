@@ -1,0 +1,5 @@
+; next line for testing only
+server 127.0.0.2
+update delete $owner IN SSHFP
+update add $owner 120 IN SSHFP $rsa_keytype 1 $rsa_fp
+update add $owner 120 IN SSHFP $dsa_keytype 1 $dsa_fp
