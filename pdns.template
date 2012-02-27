@@ -1,3 +1,5 @@
+-- This needs work to handle deletions
+
 INSERT INTO records (domain_id, name, type, content)
 VALUES (
 	(SELECT id FROM domains WHERE name = '$domain'),
