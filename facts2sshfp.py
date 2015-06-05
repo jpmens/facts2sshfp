@@ -34,12 +34,13 @@ def create_sshfp(hostname, keytype, keyblob):
 	"""Creates an SSH fingerprint"""
 
 	if keytype == "ssh-rsa":
-		keytype = "1"
+	    keytype = "1"
+	elif keytype == "ssh-dss":
+	    keytype = "2"
+        elif keytype == "ssh-ecdsa":
+            keytype = "3"
 	else:
-		if keytype == "ssh-dss":
-			keytype = "2"
-		else:
-			return ""
+		return ""
 	try:
 		rawkey = base64.b64decode(keyblob)
 	except TypeError:
@@ -121,6 +122,9 @@ if __name__ == '__main__':
         item = {}
         rsa = create_sshfp(facts[naming], 'ssh-rsa', facts['sshrsakey'])
         dsa = create_sshfp(facts[naming], 'ssh-dss', facts['sshdsakey'])
+        ecdsa = None
+        if 'sshecdsakey' in facts:
+            ecdsa = create_sshfp(facts[naming], 'ssh-ecdsa', facts['sshecdsakey'])
 
         item['hostname']        = facts['hostname']
         item['fqdn']            = facts['fqdn']
@@ -141,6 +145,10 @@ if __name__ == '__main__':
         item['rsa_keytype']     = rsa['keytype']
         item['dsa_fp']          = dsa['fpsha1']
         item['dsa_keytype']     = dsa['keytype']
+        if ecdsa:
+            item['ecdsa_fp']          = ecdsa['fpsha1']
+            item['ecdsa_keytype']     = ecdsa['keytype']
+
 
         keylist.append(item)
 
@@ -156,4 +164,6 @@ if __name__ == '__main__':
         for item in keylist:
             print "%-20s IN SSHFP %s 1 %s" % (item['owner'], item['rsa_keytype'], item['rsa_fp'])
             print "%-20s IN SSHFP %s 1 %s" % (item['owner'], item['dsa_keytype'], item['dsa_fp'])
+            if 'ecdsa_keytype' in item:
+                print "%-20s IN SSHFP %s 1 %s" % (item['owner'], item['ecdsa_keytype'], item['ecdsa_fp'])
 
