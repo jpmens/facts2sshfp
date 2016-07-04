@@ -27,6 +27,7 @@ except ImportError:
 import string
 from string import Template
 import optparse
+from getpass import getpass
 
 factsdir = '/var/lib/puppet/yaml/facts'
 
@@ -99,6 +100,9 @@ if __name__ == '__main__':
     parser.add_option('-H', '--hostname',  dest='usehost', default=False, help='Use hostname i/o fqdn',
         action='store_true')
     parser.add_option('-D', '--domainname', dest='domainname', help='Append domain')
+    parser.add_option('-F', '--foreman-url', dest='foremanurl', help='Foreman URL')
+    parser.add_option('-u', '--foreman-username', dest='foremanusername', help='Foreman username')
+    parser.add_option('-p', '--foreman-password', dest='foremanpassword', help='Foreman password')
     parser.add_option('-Q', '--qualify', dest='qualify', default=False, help='Qualify hostname with dot', action='store_true')
     parser.add_option('-J', '--json', dest='jsonprint', default=False, help='Print JSON', action='store_true')
     parser.add_option('-Y', '--yaml', dest='yamlprint', default=False, help='Print YAML', action='store_true')
@@ -117,41 +121,64 @@ if __name__ == '__main__':
     if opts.templatename:
         template = open(opts.templatename, 'r').read()
 
-    for filename in glob.glob(factsdir + "/*.yaml"):
-        facts = facts_to_dict(filename)
+    if not opts.foremanurl:
+        for filename in glob.glob(factsdir + "/*.yaml"):
+            facts = facts_to_dict(filename)
 
-        item = {}
-        rsa = create_sshfp(facts[naming], 'ssh-rsa', facts['sshrsakey'])
-        dsa = create_sshfp(facts[naming], 'ssh-dss', facts['sshdsakey'])
-        ecdsa = None
-        if 'sshecdsakey' in facts:
-            ecdsa = create_sshfp(facts[naming], 'ssh-ecdsa', facts['sshecdsakey'])
+            item = {}
+            rsa = create_sshfp(facts[naming], 'ssh-rsa', facts['sshrsakey'])
+            dsa = create_sshfp(facts[naming], 'ssh-dss', facts['sshdsakey'])
+            ecdsa = None
+            if 'sshecdsakey' in facts:
+                ecdsa = create_sshfp(facts[naming], 'ssh-ecdsa', facts['sshecdsakey'])
 
-        item['hostname']        = facts['hostname']
-        item['fqdn']            = facts['fqdn']
-        if domainname != '':
-            item['domain']          = domainname
-        else:
-            item['domain']          = facts['domain']
+            item['hostname']        = facts['hostname']
+            item['fqdn']            = facts['fqdn']
+            if domainname != '':
+                item['domain']          = domainname
+            else:
+                item['domain']          = facts['domain']
 
-        if naming == 'hostname':
-            owner = item['hostname']
-        else:
-            owner = item['hostname'] + '.' + item['domain']
-        if opts.qualify == True:
-            owner = owner + '.'
-        item['owner']           = owner
+            if naming == 'hostname':
+                owner = item['hostname']
+            else:
+                owner = item['hostname'] + '.' + item['domain']
+            if opts.qualify == True:
+                owner = owner + '.'
+            item['owner']           = owner
 
-        item['rsa_fp']          = rsa['fpsha1']
-        item['rsa_keytype']     = rsa['keytype']
-        item['dsa_fp']          = dsa['fpsha1']
-        item['dsa_keytype']     = dsa['keytype']
-        if ecdsa:
-            item['ecdsa_fp']          = ecdsa['fpsha1']
-            item['ecdsa_keytype']     = ecdsa['keytype']
+            item['rsa_fp']          = rsa['fpsha1']
+            item['rsa_keytype']     = rsa['keytype']
+            item['dsa_fp']          = dsa['fpsha1']
+            item['dsa_keytype']     = dsa['keytype']
+            if ecdsa:
+                item['ecdsa_fp']          = ecdsa['fpsha1']
+                item['ecdsa_keytype']     = ecdsa['keytype']
 
 
-        keylist.append(item)
+            keylist.append(item)
+    else:
+        from foreman.client import Foreman
+        if not opts.foremanpassword:
+            password = getpass()
+        f = Foreman(opts.foremanurl, (opts.foremanusername, password))
+
+        key_map = {
+                    'dsa': ('sshdsakey', 'ssh-dss'),
+                    'rsa': ('sshrsakey', 'ssh-rsa'),
+                    'ecdsa': ('sshecdsakey', 'ssh-ecdsa'),
+                    'ed25519': ('sshed25519key', 'ssh-ed25519'),
+                }
+        for keytype in key_map:
+            fact_name, ssh_key_type = key_map[keytype]
+            facts = f.fact_values.index(999, search="name=%s" % fact_name)
+            for host in facts:
+                key = create_sshfp(host, ssh_key_type, facts[host][fact_name])
+                item = {}
+                item['%s_fp' % keytype] = key['fpsha1']
+                item['%s_keytype' % keytype] = key['keytype']
+                item['owner'] = host
+                keylist.append(item)
 
     if opts.jsonprint == True:
         print json.dumps(keylist, indent=4)
