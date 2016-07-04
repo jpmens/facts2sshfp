@@ -103,6 +103,7 @@ if __name__ == '__main__':
     parser.add_option('-J', '--json', dest='jsonprint', default=False, help='Print JSON', action='store_true')
     parser.add_option('-Y', '--yaml', dest='yamlprint', default=False, help='Print YAML', action='store_true')
     parser.add_option('-T', '--template', dest='templatename', help='Print using template file')
+    parser.add_option('-j', '--jinja2-template', dest='j2templatename', help='Print using Jinja2 template file')
 
 
     (opts, args) = parser.parse_args()
@@ -154,6 +155,11 @@ if __name__ == '__main__':
 
     if opts.jsonprint == True:
         print json.dumps(keylist, indent=4)
+    elif opts.j2templatename:
+        from jinja2 import Environment, FileSystemLoader
+        env = Environment(loader=FileSystemLoader('.'))
+        template = env.get_template(opts.j2templatename)
+        print template.render(keylist=keylist)
     elif opts.yamlprint == True:
         print yaml.dump(keylist, default_flow_style=False, explicit_start=True)
     elif opts.templatename:
