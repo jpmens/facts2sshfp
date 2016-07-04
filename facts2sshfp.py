@@ -16,7 +16,6 @@ import glob
 import sys, re
 import yaml
 import json
-import codecs
 import base64
 try:
     import hashlib
