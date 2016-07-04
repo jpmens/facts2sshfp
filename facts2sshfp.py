@@ -31,29 +31,29 @@ from getpass import getpass
 factsdir = '/var/lib/puppet/yaml/facts'
 
 def create_sshfp(hostname, keytype, keyblob):
-	"""Creates an SSH fingerprint"""
+    """Creates an SSH fingerprint"""
 
-	if keytype == "ssh-rsa":
-	    keytype = "1"
-	elif keytype == "ssh-dss":
-	    keytype = "2"
-        elif keytype == "ssh-ecdsa":
-            keytype = "3"
-	else:
-		return ""
-	try:
-		rawkey = base64.b64decode(keyblob)
-	except TypeError:
-		print >> sys.stderr, "FAILED on hostname "+hostname+" with keyblob "+keyblob
-		return "ERROR"
+    if keytype == "ssh-rsa":
+        keytype = "1"
+    elif keytype == "ssh-dss":
+        keytype = "2"
+    elif keytype == "ssh-ecdsa":
+        keytype = "3"
+    else:
+        return ""
+    try:
+        rawkey = base64.b64decode(keyblob)
+    except TypeError:
+        print >> sys.stderr, "FAILED on hostname "+hostname+" with keyblob "+keyblob
+        return "ERROR"
 
-	fpsha1 = digest(rawkey).hexdigest().upper()
+    fpsha1 = digest(rawkey).hexdigest().upper()
 
-        # return hostname + " IN SSHFP " + keytype + " 1 " + fpsha1
-        return {
-            "keytype"   : keytype,
-            "fpsha1"    : fpsha1
-        }
+    # return hostname + " IN SSHFP " + keytype + " 1 " + fpsha1
+    return {
+        "keytype"   : keytype,
+        "fpsha1"    : fpsha1
+    }
 
 def facts_to_dict(filename):
     """
