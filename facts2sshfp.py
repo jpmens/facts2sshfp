@@ -124,10 +124,12 @@ if __name__ == '__main__':
         for filename in glob.glob(factsdir + "/*.yaml"):
             facts = facts_to_dict(filename)
 
+            rsa = dsa = ecdsa = None
             item = {}
-            rsa = create_sshfp(facts[naming], 'ssh-rsa', facts['sshrsakey'])
-            dsa = create_sshfp(facts[naming], 'ssh-dss', facts['sshdsakey'])
-            ecdsa = None
+            if 'sshrsakey' in facts:
+                rsa = create_sshfp(facts[naming], 'ssh-rsa', facts['sshrsakey'])
+            if 'sshdsakey' in facts:
+                dsa = create_sshfp(facts[naming], 'ssh-dss', facts['sshdsakey'])
             if 'sshecdsakey' in facts:
                 ecdsa = create_sshfp(facts[naming], 'ssh-ecdsa', facts['sshecdsakey'])
 
@@ -146,16 +148,20 @@ if __name__ == '__main__':
                 owner = owner + '.'
             item['owner']           = owner
 
-            item['rsa_fp']          = rsa['fpsha1']
-            item['rsa_keytype']     = rsa['keytype']
-            item['dsa_fp']          = dsa['fpsha1']
-            item['dsa_keytype']     = dsa['keytype']
+            if rsa:
+                item['rsa_fp']          = rsa['fpsha1']
+                item['rsa_keytype']     = rsa['keytype']
+            if dsa:
+                item['dsa_fp']          = dsa['fpsha1']
+                item['dsa_keytype']     = dsa['keytype']
             if ecdsa:
                 item['ecdsa_fp']          = ecdsa['fpsha1']
                 item['ecdsa_keytype']     = ecdsa['keytype']
 
-
-            keylist.append(item)
+            if rsa or dsa or ecdsa:
+                keylist.append(item)
+            else:
+                sys.stderr.write("Warning: %s has no keys!\n" % owner)
     else:
         from foreman.client import Foreman
         if not opts.foremanpassword:
@@ -194,8 +200,10 @@ if __name__ == '__main__':
             print s.substitute(item)
     else:
         for item in keylist:
-            print "%-20s IN SSHFP %s 1 %s" % (item['owner'], item['rsa_keytype'], item['rsa_fp'])
-            print "%-20s IN SSHFP %s 1 %s" % (item['owner'], item['dsa_keytype'], item['dsa_fp'])
+            if 'rsa_keytype' in item:
+                print "%-20s IN SSHFP %s 1 %s" % (item['owner'], item['rsa_keytype'], item['rsa_fp'])
+            if 'dsa_keytype' in item:
+                print "%-20s IN SSHFP %s 1 %s" % (item['owner'], item['dsa_keytype'], item['dsa_fp'])
             if 'ecdsa_keytype' in item:
                 print "%-20s IN SSHFP %s 1 %s" % (item['owner'], item['ecdsa_keytype'], item['ecdsa_fp'])
 
